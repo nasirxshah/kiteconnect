@@ -25,9 +25,9 @@ class KiteSession(object):
         self.reqsession = requests.Session()
         self.debug = debug
 
-    def get_cookies(self, password, pin):
+    def generate_session(self, password, pin):
         request_token = self.get_request_token(password)
-        self.generate_session(request_token, pin)
+        self.get_access_token(request_token, pin)
         return self.reqsession.cookies
         
     def get_request_token(self, password):
@@ -38,7 +38,7 @@ class KiteSession(object):
         return resp["request_id"]
 
 
-    def generate_session(self, request_token, pin):
+    def get_access_token(self, request_token, pin):
         """
         Generate user session details like `access_token` etc by exchanging `request_token`.
         Access token is automatically set if the session is retrieved successfully.
@@ -51,14 +51,15 @@ class KiteSession(object):
         - `request_token` is the token obtained from the GET paramers after a successful login redirect.
         - `pin` is for two factor authentication.
         """
-        resp = self._post(self._default_twofa_url,data = {
+        self._post(self._default_twofa_url,data = {
             "user_id":self.user_id,
             "request_id":request_token,
             "twofa_value":pin,
             "twofa_type":"pin",
             "skip_session":""
         })
-    
+
+        return self.reqsession.cookies['enctoken']
 
     def _post(self, url, data = None):
         try:
@@ -79,9 +80,7 @@ class KiteSession(object):
 
             # api error
             if data.get("status") == "error" or data.get("error_type"):
-                # Call session hook if its registered and TokenException is raised
-                if self.session_expiry_hook and r.status_code == 403 and data["error_type"] == "TokenException":
-                    self.session_expiry_hook()
+                raise 
 
             return data["data"]
 

@@ -12,6 +12,7 @@ class KiteException(Exception):
         """Initialize the exception."""
         super(KiteException, self).__init__(message)
         self.code = code
+        self.message = message
 
 
 class GeneralException(KiteException):

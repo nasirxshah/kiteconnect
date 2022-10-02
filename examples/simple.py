@@ -1,13 +1,3 @@
-# kiteconnect
-Unofficial Python client for communicating with the [Kite Connect API](https://kite.trade).
-
-Kite Connect is a set of REST-like APIs that expose many capabilities required to build a complete investment and trading platform. Execute orders in real time, manage user portfolio, stream live market data (WebSockets), and more, with the simple HTTP API collection.
-
-
-
-## API usage
-
-```python
 import logging
 from kiteconnect import KiteConnect, KiteSession
 
@@ -41,4 +31,20 @@ except Exception as e:
 
 # Fetch all orders
 kite.orders()
-```
+
+# Get instruments
+kite.instruments()
+
+# Place an mutual fund order
+kite.place_mf_order(
+    tradingsymbol="INF090I01239",
+    transaction_type=kite.TRANSACTION_TYPE_BUY,
+    amount=5000,
+    tag="mytag"
+)
+
+# Cancel a mutual fund order
+kite.cancel_mf_order(order_id="order_id")
+
+# Get mutual fund instruments
+kite.mf_instruments()
