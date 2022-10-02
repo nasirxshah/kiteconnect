@@ -393,7 +393,7 @@ class KiteTicker(object):
     # Maximum number or retries user can set
     _maximum_reconnect_max_tries = 300
 
-    def __init__(self, user_id, enctoken, debug=False, root=None,
+    def __init__(self, user_id, access_token, debug=False, root=None,
                  reconnect=True, reconnect_max_tries=RECONNECT_MAX_TRIES, reconnect_max_delay=RECONNECT_MAX_DELAY,
                  connect_timeout=CONNECT_TIMEOUT):
         """
@@ -437,7 +437,7 @@ class KiteTicker(object):
         _socket_url_params = {
             "api_key":"kitefront",
             "user_id":user_id,
-            "enctoken":enctoken,
+            "enctoken":access_token,
             "uid":int(time.time()*1000),
             "user-agent":"kite3-web",
             "version":"3.0.5"

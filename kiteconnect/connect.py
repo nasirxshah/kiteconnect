@@ -1,4 +1,5 @@
 
+from tkinter import E
 from six import StringIO, PY2
 # from six.moves.urllib.parse import urljoin
 from urllib.parse import urljoin
@@ -26,11 +27,14 @@ class KiteSession(object):
         self.debug = debug
 
     def generate_session(self, password, pin):
-        request_token = self.get_request_token(password)
-        self.get_access_token(request_token, pin)
+        request_token = self.generate_request_token(password)
+        self.generate_request_token(request_token, pin)
         return self.reqsession.cookies
+    
+    def get_access_token(self):
+        return self.reqsession.cookies.get("enctoken")
         
-    def get_request_token(self, password):
+    def generate_request_token(self, password):
         resp = self._post(self._default_login_url,data={
             "user_id" : self.user_id,
             "password" : password
@@ -38,7 +42,7 @@ class KiteSession(object):
         return resp["request_id"]
 
 
-    def get_access_token(self, request_token, pin):
+    def generate_access_token(self, request_token, pin):
         """
         Generate user session details like `access_token` etc by exchanging `request_token`.
         Access token is automatically set if the session is retrieved successfully.
