@@ -28,7 +28,7 @@ class KiteSession(object):
 
     def generate_session(self, password, pin):
         request_token = self.generate_request_token(password)
-        self.generate_request_token(request_token, pin)
+        self.generate_access_token(request_token, pin)
         return self.reqsession.cookies
     
     def get_access_token(self):
