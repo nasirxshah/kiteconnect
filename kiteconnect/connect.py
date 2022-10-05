@@ -42,7 +42,7 @@ class KiteSession(object):
         return resp["request_id"]
 
 
-    def generate_access_token(self, request_token, pin):
+    def generate_access_token(self, request_token, TOTP):
         """
         Generate user session details like `access_token` etc by exchanging `request_token`.
         Access token is automatically set if the session is retrieved successfully.
@@ -58,8 +58,8 @@ class KiteSession(object):
         self._post(self._default_twofa_url,data = {
             "user_id":self.user_id,
             "request_id":request_token,
-            "twofa_value":pin,
-            "twofa_type":"pin",
+            "twofa_value":TOTP,
+            "twofa_type":"app_code",
             "skip_session":""
         })
 
