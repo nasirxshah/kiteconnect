@@ -26,9 +26,9 @@ class KiteSession(object):
         self.reqsession = requests.Session()
         self.debug = debug
 
-    def generate_session(self, password, pin):
+    def generate_session(self, password, totp):
         request_token = self.generate_request_token(password)
-        self.generate_access_token(request_token, pin)
+        self.generate_access_token(request_token, totp)
         return self.reqsession.cookies
     
     def get_access_token(self):

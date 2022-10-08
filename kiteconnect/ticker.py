@@ -541,6 +541,8 @@ class KiteTicker(object):
         """Close the WebSocket connection."""
         if self.ws:
             self.ws.sendClose(code, reason)
+            if self.on_close:
+                self.on_close(self, code, reason)
 
     def close(self, code=None, reason=None):
         """Close the WebSocket connection."""
