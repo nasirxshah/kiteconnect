@@ -7,7 +7,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 ksession = KiteSession(user_id="your user id")
-cookies = ksession.generate_session("password","pin: two factor auth")
+cookies = ksession.generate_session("password","TOTP: two factor auth")
 
 
 kite = KiteConnect()
