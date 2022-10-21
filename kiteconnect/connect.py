@@ -21,28 +21,12 @@ class KiteSession(object):
     _default_login_url = "https://kite.zerodha.com/api/login"
     _default_twofa_url = "https://kite.zerodha.com/api/twofa"
 
-    def __init__(self, user_id, debug = False) -> None:
+    def __init__(self, user_id, debug=False) -> None:
         self.user_id = user_id
         self.reqsession = requests.Session()
         self.debug = debug
 
     def generate_session(self, password, totp):
-        request_token = self.generate_request_token(password)
-        self.generate_access_token(request_token, totp)
-        return self.reqsession.cookies
-    
-    def get_access_token(self):
-        return self.reqsession.cookies.get("enctoken")
-        
-    def generate_request_token(self, password):
-        resp = self._post(self._default_login_url,data={
-            "user_id" : self.user_id,
-            "password" : password
-        })
-        return resp["request_id"]
-
-
-    def generate_access_token(self, request_token, TOTP):
         """
         Generate user session details like `access_token` etc by exchanging `request_token`.
         Access token is automatically set if the session is retrieved successfully.
@@ -55,24 +39,33 @@ class KiteSession(object):
         - `request_token` is the token obtained from the GET paramers after a successful login redirect.
         - `pin` is for two factor authentication.
         """
-        self._post(self._default_twofa_url,data = {
-            "user_id":self.user_id,
-            "request_id":request_token,
-            "twofa_value":TOTP,
-            "twofa_type":"app_code",
-            "skip_session":""
+        request_token = self._post(self._default_login_url, data={
+            "user_id": self.user_id,
+            "password": password
+        })['request_id']
+
+        self._post(self._default_twofa_url, data={
+            "user_id": self.user_id,
+            "request_id": request_token,
+            "twofa_value": totp,
+            "twofa_type": "app_code",
+            "skip_session": ""
         })
 
-        return self.reqsession.cookies['enctoken']
+        return self.reqsession.cookies
 
-    def _post(self, url, data = None):
+    def get_access_token(self):
+        return self.reqsession.cookies.get("enctoken")
+
+    def _post(self, url, data=None):
         try:
-            r = self.reqsession.post(url, data = data)
+            r = self.reqsession.post(url, data=data)
         except Exception as e:
             raise e
 
         if self.debug:
-            log.debug("Response: {code} {content}".format(code=r.status_code, content=r.content))
+            log.debug("Response: {code} {content}".format(
+                code=r.status_code, content=r.content))
 
         # Validate the content type.
         if "json" in r.headers["content-type"]:
@@ -84,9 +77,10 @@ class KiteSession(object):
 
             # api error
             if data.get("status") == "error" or data.get("error_type"):
-                raise 
+                raise
 
             return data["data"]
+
 
 class KiteConnect(object):
     """
@@ -101,7 +95,7 @@ class KiteConnect(object):
     _default_root_uri = "https://kite.zerodha.com"
     _route_patch = "/oms"
     # _default_login_uri = "https://kite.trade/connect/login"
-    
+
     _default_timeout = 7  # In seconds
 
     # Constants
@@ -307,7 +301,7 @@ class KiteConnect(object):
         self.cookies = cookies
         self.access_token = cookies['enctoken']
         self.user_id = cookies['user_id']
-        
+
     def margins(self, segment=None):
         """Get account balance and cash margin details for a particular segment.
 
@@ -383,7 +377,8 @@ class KiteConnect(object):
     def cancel_order(self, variety, order_id, parent_order_id=None):
         """Cancel an order."""
         return self._delete("order.cancel",
-                            url_args={"variety": variety, "order_id": order_id},
+                            url_args={"variety": variety,
+                                      "order_id": order_id},
                             params={"parent_order_id": parent_order_id})["order_id"]
 
     def exit_order(self, variety, order_id, parent_order_id=None):
@@ -618,11 +613,14 @@ class KiteConnect(object):
         - `oi` is a boolean flag to get open interest.
         """
         date_string_format = "%Y-%m-%d %H:%M:%S"
-        from_date_string = from_date.strftime(date_string_format) if type(from_date) == datetime.datetime else from_date
-        to_date_string = to_date.strftime(date_string_format) if type(to_date) == datetime.datetime else to_date
+        from_date_string = from_date.strftime(date_string_format) if type(
+            from_date) == datetime.datetime else from_date
+        to_date_string = to_date.strftime(date_string_format) if type(
+            to_date) == datetime.datetime else to_date
 
         data = self._get("market.historical",
-                         url_args={"instrument_token": instrument_token, "interval": interval},
+                         url_args={"instrument_token": instrument_token,
+                                   "interval": interval},
                          params={
                              "from": from_date_string,
                              "to": to_date_string,
@@ -659,7 +657,8 @@ class KiteConnect(object):
             ins = instruments[0]
 
         return self._get("market.trigger_range",
-                         url_args={"transaction_type": transaction_type.lower()},
+                         url_args={
+                             "transaction_type": transaction_type.lower()},
                          params={"i": ins})
 
     def get_gtts(self):
@@ -675,9 +674,11 @@ class KiteConnect(object):
         if type(trigger_values) != list:
             raise ex.InputException("invalid type for `trigger_values`")
         if trigger_type == self.GTT_TYPE_SINGLE and len(trigger_values) != 1:
-            raise ex.InputException("invalid `trigger_values` for single leg order type")
+            raise ex.InputException(
+                "invalid `trigger_values` for single leg order type")
         elif trigger_type == self.GTT_TYPE_OCO and len(trigger_values) != 2:
-            raise ex.InputException("invalid `trigger_values` for OCO order type")
+            raise ex.InputException(
+                "invalid `trigger_values` for OCO order type")
 
         condition = {
             "exchange": exchange,
@@ -691,7 +692,8 @@ class KiteConnect(object):
             # Assert required keys inside gtt order.
             for req in ["transaction_type", "quantity", "order_type", "product", "price"]:
                 if req not in o:
-                    raise ex.InputException("`{req}` missing inside orders".format(req=req))
+                    raise ex.InputException(
+                        "`{req}` missing inside orders".format(req=req))
             gtt_orders.append({
                 "exchange": exchange,
                 "tradingsymbol": tradingsymbol,
@@ -722,7 +724,8 @@ class KiteConnect(object):
         """
         # Validations.
         assert trigger_type in [self.GTT_TYPE_OCO, self.GTT_TYPE_SINGLE]
-        condition, gtt_orders = self._get_gtt_payload(trigger_type, tradingsymbol, exchange, trigger_values, last_price, orders)
+        condition, gtt_orders = self._get_gtt_payload(
+            trigger_type, tradingsymbol, exchange, trigger_values, last_price, orders)
 
         return self._post("gtt.place", params={
             "condition": json.dumps(condition),
@@ -745,7 +748,8 @@ class KiteConnect(object):
             - `quantity` Quantity to transact
             - `price` The min or max price to execute the order at (for LIMIT orders)
         """
-        condition, gtt_orders = self._get_gtt_payload(trigger_type, tradingsymbol, exchange, trigger_values, last_price, orders)
+        condition, gtt_orders = self._get_gtt_payload(
+            trigger_type, tradingsymbol, exchange, trigger_values, last_price, orders)
 
         return self._put("gtt.modify",
                          url_args={"trigger_id": trigger_id},
@@ -819,18 +823,24 @@ class KiteConnect(object):
         reader = csv.DictReader(StringIO(d))
 
         for row in reader:
-            row["minimum_purchase_amount"] = float(row["minimum_purchase_amount"])
-            row["purchase_amount_multiplier"] = float(row["purchase_amount_multiplier"])
-            row["minimum_additional_purchase_amount"] = float(row["minimum_additional_purchase_amount"])
-            row["minimum_redemption_quantity"] = float(row["minimum_redemption_quantity"])
-            row["redemption_quantity_multiplier"] = float(row["redemption_quantity_multiplier"])
+            row["minimum_purchase_amount"] = float(
+                row["minimum_purchase_amount"])
+            row["purchase_amount_multiplier"] = float(
+                row["purchase_amount_multiplier"])
+            row["minimum_additional_purchase_amount"] = float(
+                row["minimum_additional_purchase_amount"])
+            row["minimum_redemption_quantity"] = float(
+                row["minimum_redemption_quantity"])
+            row["redemption_quantity_multiplier"] = float(
+                row["redemption_quantity_multiplier"])
             row["purchase_allowed"] = bool(int(row["purchase_allowed"]))
             row["redemption_allowed"] = bool(int(row["redemption_allowed"]))
             row["last_price"] = float(row["last_price"])
 
             # Parse date
             if len(row["last_price_date"]) == 10:
-                row["last_price_date"] = dateutil.parser.parse(row["last_price_date"]).date()
+                row["last_price_date"] = dateutil.parser.parse(
+                    row["last_price_date"]).date()
 
             records.append(row)
 
@@ -838,7 +848,7 @@ class KiteConnect(object):
 
     def _user_agent(self):
         return "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36"
-    
+
     def _get(self, route, url_args=None, params=None, is_json=False):
         """Alias for sending a GET request."""
         return self._request(route, "GET", url_args=url_args, params=params, is_json=is_json)
@@ -859,7 +869,7 @@ class KiteConnect(object):
         """Make an HTTP request."""
         # Form a restful URL
         if url_args:
-            uri = self._route_patch +self._routes[route].format(**url_args)
+            uri = self._route_patch + self._routes[route].format(**url_args)
         else:
             uri = self._route_patch + self._routes[route]
 
@@ -869,16 +879,16 @@ class KiteConnect(object):
         headers = {
             "X-Kite-Version": "3.0.5",  # For version 3
             "User-Agent": self._user_agent(),
-            "X-Kite-Userid":self.user_id,
+            "X-Kite-Userid": self.user_id,
         }
 
         if self.access_token:
             # set authorization header
             headers["Authorization"] = "enctoken {}".format(self.access_token)
-    
 
         if self.debug:
-            log.debug("Request: {method} {url} {params} {headers}".format(method=method, url=url, params=params, headers=headers))
+            log.debug("Request: {method} {url} {params} {headers}".format(
+                method=method, url=url, params=params, headers=headers))
 
         # prepare url query params
         if method in ["GET", "DELETE"]:
@@ -887,8 +897,10 @@ class KiteConnect(object):
         try:
             r = self.reqsession.request(method,
                                         url,
-                                        json=params if (method in ["POST", "PUT"] and is_json) else None,
-                                        data=params if (method in ["POST", "PUT"] and not is_json) else None,
+                                        json=params if (
+                                            method in ["POST", "PUT"] and is_json) else None,
+                                        data=params if (
+                                            method in ["POST", "PUT"] and not is_json) else None,
                                         params=query_params,
                                         headers=headers,
                                         verify=not self.disable_ssl,
@@ -901,7 +913,8 @@ class KiteConnect(object):
             raise e
 
         if self.debug:
-            log.debug("Response: {code} {content}".format(code=r.status_code, content=r.content))
+            log.debug("Response: {code} {content}".format(
+                code=r.status_code, content=r.content))
 
         # Validate the content type.
         if "json" in r.headers["content-type"]:

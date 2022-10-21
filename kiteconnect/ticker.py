@@ -393,7 +393,7 @@ class KiteTicker(object):
     # Maximum number or retries user can set
     _maximum_reconnect_max_tries = 300
 
-    def __init__(self, user_id, access_token, debug=False, root=None,
+    def __init__(self, user_id = None, access_token = None, cookies = None, debug=False, root=None,
                  reconnect=True, reconnect_max_tries=RECONNECT_MAX_TRIES, reconnect_max_delay=RECONNECT_MAX_DELAY,
                  connect_timeout=CONNECT_TIMEOUT):
         """
@@ -413,6 +413,14 @@ class KiteTicker(object):
         - `reconnect_max_tries` is maximum number reconnection attempts. Defaults to 50 attempts and maximum up to 300 attempts.
         - `connect_timeout` in seconds is the maximum interval after which connection is considered as timeout. Defaults to 30s.
         """
+
+        if user_id is None or access_token is None:
+            if cookies is None:
+                raise Exception("Credetials Not Found")
+            else:
+                user_id = cookies['user_id']
+                access_token = cookies['enctoken']
+
         self.root = root or self.ROOT_URI
 
         # Set max reconnect tries
